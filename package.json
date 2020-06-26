@@ -1,0 +1,7 @@
+{
+	"name": "next-backend-analytics",
+	"version": "1.0.0",
+	"description": "Removes all spaces from a string",
+	"license": "MIT",
+	"repository": "addi/next-backend-analytics"
+}

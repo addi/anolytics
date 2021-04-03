@@ -1,29 +1,32 @@
 import ua from "universal-analytics";
+
 const defaultSettings = {
   sendSessionId: true,
   sendIp: true,
   anonymizeIp: true,
   sendUserAgent: true,
-  sendScreenResolution: false
+  sendScreenResolution: false,
 };
 
-const anonymizeIp = ip => {
+const anonymizeIp = (ip) => {
   const ipSplitter = ip.includes(":") ? ":" : ".";
+
   const ipBits = ip.split(ipSplitter);
+
   ipBits[ipBits.length - 1] = "1";
+
   return ipBits.join(ipSplitter);
 };
 
-const prepareSettings = settings => {
+const prepareSettings = (settings) => {
   if (typeof settings === "string" || settings instanceof String) {
-    const finalSettings = { ...defaultSettings
-    };
+    const finalSettings = { ...defaultSettings };
+
     finalSettings["googleAnalyticsAccountId"] = settings;
+
     return finalSettings;
   } else {
-    return { ...defaultSettings,
-      ...settings
-    };
+    return { ...defaultSettings, ...settings };
   }
 };
 
@@ -31,22 +34,29 @@ export default function serverSideTracking(req, res, settings) {
   const finalSettings = prepareSettings(settings);
 
   if (finalSettings.hasOwnProperty("googleAnalyticsAccountId") === false) {
-    res.status(500).send({
-      error: "Google Analytics account id missing"
-    });
+    res.status(500).send({ error: "Google Analytics account id missing" });
     return;
   }
 
   const sID = finalSettings.sendSessionId ? req.body.sessionId : undefined;
+
   const visitor = ua(finalSettings.googleAnalyticsAccountId, sID);
-  const clientIp = (req.headers["x-forwarded-for"] || "").split(",").pop().trim() || req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket.remoteAddress;
+
+  const clientIp =
+    (req.headers["x-forwarded-for"] || "").split(",").pop().trim() ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    req.connection.socket.remoteAddress;
+
   var params = {
     documentPath: req.body.path,
-    documentReferrer: req.body.referrer
+    documentReferrer: req.body.referrer,
   };
 
   if (finalSettings.sendIp) {
-    params["ipOverride"] = finalSettings.anonymizeIp ? anonymizeIp(clientIp) : clientIp;
+    params["ipOverride"] = finalSettings.anonymizeIp
+      ? anonymizeIp(clientIp)
+      : clientIp;
   }
 
   if (finalSettings.sendUserAgent) {
@@ -58,8 +68,6 @@ export default function serverSideTracking(req, res, settings) {
   }
 
   visitor.pageview(params, function (err) {
-    res.status(200).send({
-      lol: "hi"
-    });
+    res.status(200).send({ lol: "hi" });
   });
 }

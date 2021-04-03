@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import Router from "next/router";
+
 let sID = undefined;
+
 export default function useServerSideTracking(url = "/api/track") {
   let lastPage = undefined;
 
@@ -10,15 +12,16 @@ export default function useServerSideTracking(url = "/api/track") {
       sessionId: sessionId,
       path: path,
       referrer: referrer,
-      screenResolution: screenResolution
+      screenResolution: screenResolution,
     };
+
     await fetch(url, {
       headers: {
         Accept: "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       method: "POST",
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
   };
 
@@ -28,14 +31,19 @@ export default function useServerSideTracking(url = "/api/track") {
     lastPage = document.location.href;
   };
 
-  const urlChanged = url => {
+  const urlChanged = (url) => {
     postAnalytics(sID, url, lastPage, getScreenResolution());
   };
 
-  const messageReceived = event => {
+  const messageReceived = (event) => {
     if (event.key == "next_vercel_tracking: sId" && sID === undefined) {
       sID = event.newValue;
-      postAnalytics(sID, Router.pathname, document.referrer, getScreenResolution());
+      postAnalytics(
+        sID,
+        Router.pathname,
+        document.referrer,
+        getScreenResolution()
+      );
     }
 
     if (event.key == "next_vercel_tracking: send_sId" && sID !== undefined) {
@@ -51,12 +59,21 @@ export default function useServerSideTracking(url = "/api/track") {
   useEffect(() => {
     Router.events.on("routeChangeStart", urlAboutToChange);
     Router.events.on("routeChangeComplete", urlChanged);
+
     window.addEventListener("storage", messageReceived);
+
     sendMessage("next_vercel_tracking: send_sId", "");
+
     setTimeout(() => {
       if (sID === undefined) {
         sID = uuidv4();
-        postAnalytics(sID, Router.pathname, document.referrer, getScreenResolution());
+
+        postAnalytics(
+          sID,
+          Router.pathname,
+          document.referrer,
+          getScreenResolution()
+        );
       }
     }, 50);
   }, []);

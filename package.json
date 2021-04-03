@@ -1,7 +1,24 @@
 {
 	"name": "next-backend-analytics",
-	"version": "1.0.0",
-	"description": "Removes all spaces from a string",
+	"version": "0.1.0",
+	"description": "Server side analytics for Next.js",
 	"license": "MIT",
-	"repository": "addi/next-backend-analytics"
+	"repository": "addi/next-backend-analytics",
+	"scripts": {
+		"build": "babel src --out-dir .",
+		"bump": "npm version",
+		"example": "cd example && yarn package",
+		"prepublishOnly": "yarn build"
+	},
+	"dependencies": {
+		"@babel/runtime": "^7.13.10",
+		"universal-analytics": "0.4.20"
+	},
+	"devDependencies": {
+		"@babel/cli": "^7.8.4",
+		"@babel/core": "^7.9.0",
+		"@babel/plugin-transform-runtime": "^7.13.10",
+		"@babel/preset-env": ">= 7.9.0",
+		"@babel/preset-react": ">= 7.9.4"
+	}
 }

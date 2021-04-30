@@ -38,9 +38,9 @@ export default function serverSideTracking(req, res, settings) {
     return;
   }
 
-  const sID = finalSettings.sendSessionId ? req.body.sessionId : undefined;
+  const id = finalSettings.sendSessionId ? req.body.sessionId : undefined;
 
-  const visitor = ua(finalSettings.googleAnalyticsAccountId, sID);
+  const visitor = ua(finalSettings.googleAnalyticsAccountId, id);
 
   const clientIp =
     (req.headers["x-forwarded-for"] || "").split(",").pop().trim() ||
@@ -68,6 +68,12 @@ export default function serverSideTracking(req, res, settings) {
   }
 
   visitor.pageview(params, function (err) {
-    res.status(200).send({ lol: "hi" });
+    if (err) {
+      console.error(err);
+      res.status(500).send({ error: "Error, check logs" });  
+    } else {
+      res.status(200).send({ success: true });  
+    }
+
   });
 }

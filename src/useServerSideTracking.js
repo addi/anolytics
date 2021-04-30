@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import Router from "next/router";
 
-let sID = undefined;
-
 export default function useServerSideTracking(url = "/api/track") {
+  let id = uuidv4();
+  let date = new Date();
   let lastPage = undefined;
 
   const postAnalytics = async (sessionId, path, referrer, screenResolution) => {
@@ -28,53 +28,68 @@ export default function useServerSideTracking(url = "/api/track") {
   const getScreenResolution = () => screen.width + "x" + screen.height;
 
   const urlAboutToChange = () => {
-    lastPage = document.location.href;
-  };
-
-  const urlChanged = (url) => {
-    postAnalytics(sID, url, lastPage, getScreenResolution());
-  };
-
-  const messageReceived = (event) => {
-    if (event.key == "next_vercel_tracking: sId" && sID === undefined) {
-      sID = event.newValue;
+    if (lastPage === undefined) {
       postAnalytics(
-        sID,
+        id,
         Router.pathname,
         document.referrer,
         getScreenResolution()
       );
     }
 
-    if (event.key == "next_vercel_tracking: send_sId" && sID !== undefined) {
-      sendMessage("next_vercel_tracking: sId", sID);
+    lastPage = document.location.href;
+  };
+
+  const urlChanged = (url) => {
+    postAnalytics(id, url, lastPage, getScreenResolution());
+  };
+
+  const setupCommunications = () => {
+    navigator.serviceWorker.addEventListener("message", messageReceived);
+
+    navigator.serviceWorker.controller.postMessage({ id, date });
+
+    if (window && navigator.serviceWorker.controller) {
+      window.onbeforeunload = function () {
+        navigator.serviceWorker.controller.postMessage({ id, date });
+      };
     }
   };
 
-  const sendMessage = (key, value) => {
-    localStorage.setItem(key, value);
-    localStorage.removeItem(key);
+  const messageReceived = ({ data }) => {
+    if (date < data.date || (date === data.date && id < data.id)) {
+      navigator.serviceWorker.controller.postMessage({ id, date });
+    } else {
+      id = data.id;
+      date = data.date;
+    }
   };
 
   useEffect(() => {
     Router.events.on("routeChangeStart", urlAboutToChange);
     Router.events.on("routeChangeComplete", urlChanged);
 
-    window.addEventListener("storage", messageReceived);
-
-    sendMessage("next_vercel_tracking: send_sId", "");
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("./next-google-analytics/service-worker.js")
+        .then(() => navigator.serviceWorker.ready)
+        .then(setupCommunications)
+        .catch((error) => {
+          console.error(error);
+        });
+    }
 
     setTimeout(() => {
-      if (sID === undefined) {
-        sID = uuidv4();
+      if (lastPage === undefined) {
+        lastPage = document.location.href;
 
         postAnalytics(
-          sID,
+          id,
           Router.pathname,
           document.referrer,
           getScreenResolution()
         );
       }
-    }, 50);
+    }, 1000);
   }, []);
 }

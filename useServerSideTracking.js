@@ -1,63 +1,129 @@
-import { useEffect } from "react";
-import { v4 as uuidv4 } from "uuid";
-import Router from "next/router";
-let sID = undefined;
-export default function useServerSideTracking(url = "/api/track") {
-  let lastPage = undefined;
+"use strict";
 
-  const postAnalytics = async (sessionId, path, referrer, screenResolution) => {
-    const body = {
-      sessionId: sessionId,
-      path: path,
-      referrer: referrer,
-      screenResolution: screenResolution
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports["default"] = useServerSideTracking;
+
+var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
+
+var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
+
+var _react = require("react");
+
+var _uuid = require("uuid");
+
+var _router = _interopRequireDefault(require("next/router"));
+
+function useServerSideTracking() {
+  var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "/api/track";
+  var id = (0, _uuid.v4)();
+  var date = new Date();
+  var lastPage = undefined;
+
+  var postAnalytics = /*#__PURE__*/function () {
+    var _ref = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee(sessionId, path, referrer, screenResolution) {
+      var body;
+      return _regenerator["default"].wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              body = {
+                sessionId: sessionId,
+                path: path,
+                referrer: referrer,
+                screenResolution: screenResolution
+              };
+              _context.next = 3;
+              return fetch(url, {
+                headers: {
+                  Accept: "application/json",
+                  "Content-Type": "application/json"
+                },
+                method: "POST",
+                body: JSON.stringify(body)
+              });
+
+            case 3:
+            case "end":
+              return _context.stop();
+          }
+        }
+      }, _callee);
+    }));
+
+    return function postAnalytics(_x, _x2, _x3, _x4) {
+      return _ref.apply(this, arguments);
     };
-    await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      },
-      method: "POST",
-      body: JSON.stringify(body)
-    });
+  }();
+
+  var getScreenResolution = function getScreenResolution() {
+    return screen.width + "x" + screen.height;
   };
 
-  const getScreenResolution = () => screen.width + "x" + screen.height;
+  var urlAboutToChange = function urlAboutToChange() {
+    if (lastPage === undefined) {
+      postAnalytics(id, _router["default"].pathname, document.referrer, getScreenResolution());
+    }
 
-  const urlAboutToChange = () => {
     lastPage = document.location.href;
   };
 
-  const urlChanged = url => {
-    postAnalytics(sID, url, lastPage, getScreenResolution());
+  var urlChanged = function urlChanged(url) {
+    postAnalytics(id, url, lastPage, getScreenResolution());
   };
 
-  const messageReceived = event => {
-    if (event.key == "next_vercel_tracking: sId" && sID === undefined) {
-      sID = event.newValue;
-      postAnalytics(sID, Router.pathname, document.referrer, getScreenResolution());
+  var setupCommunications = function setupCommunications() {
+    navigator.serviceWorker.addEventListener("message", messageReceived);
+    navigator.serviceWorker.controller.postMessage({
+      id: id,
+      date: date
+    });
+
+    if (window && navigator.serviceWorker.controller) {
+      window.onbeforeunload = function () {
+        navigator.serviceWorker.controller.postMessage({
+          id: id,
+          date: date
+        });
+      };
+    }
+  };
+
+  var messageReceived = function messageReceived(_ref2) {
+    var data = _ref2.data;
+
+    if (date < data.date || date === data.date && id < data.id) {
+      navigator.serviceWorker.controller.postMessage({
+        id: id,
+        date: date
+      });
+    } else {
+      id = data.id;
+      date = data.date;
+    }
+  };
+
+  (0, _react.useEffect)(function () {
+    _router["default"].events.on("routeChangeStart", urlAboutToChange);
+
+    _router["default"].events.on("routeChangeComplete", urlChanged);
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./next-google-analytics/service-worker.js").then(function () {
+        return navigator.serviceWorker.ready;
+      }).then(setupCommunications)["catch"](function (error) {
+        console.error(error);
+      });
     }
 
-    if (event.key == "next_vercel_tracking: send_sId" && sID !== undefined) {
-      sendMessage("next_vercel_tracking: sId", sID);
-    }
-  };
-
-  const sendMessage = (key, value) => {
-    localStorage.setItem(key, value);
-    localStorage.removeItem(key);
-  };
-
-  useEffect(() => {
-    Router.events.on("routeChangeStart", urlAboutToChange);
-    Router.events.on("routeChangeComplete", urlChanged);
-    window.addEventListener("storage", messageReceived);
-    sendMessage("next_vercel_tracking: send_sId", "");
-    setTimeout(() => {
-      if (sID === undefined) {
-        sID = uuidv4();
-        postAnalytics(sID, Router.pathname, document.referrer, getScreenResolution());
+    setTimeout(function () {
+      if (lastPage === undefined) {
+        lastPage = document.location.href;
+        postAnalytics(id, _router["default"].pathname, document.referrer, getScreenResolution());
       }
-    }, 50);
+    }, 1000);
   }, []);
 }

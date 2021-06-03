@@ -1,9 +1,9 @@
 {
-	"name": "next-google-analytics",
+	"name": "Anolytics",
 	"version": "0.2.0",
-	"description": "Server side analytics for Next.js",
+	"description": "Anonymized Google Analytics for Next.js",
 	"license": "MIT",
-	"repository": "addi/next-backend-analytics",
+	"repository": "addi/anolytics",
 	"scripts": {
 		"build": "babel src --out-dir .",
 		"bump": "npm version",
